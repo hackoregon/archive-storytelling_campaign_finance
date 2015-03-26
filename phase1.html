@@ -5,8 +5,18 @@
   <script src="lib/d3/d3.min.js"></script>
   <script src="lib/jquery-2.1.3.min.js"></script>
   <style>
-    rect {
-        fill: #003300;
+  g {
+    stroke: #333;
+    stroke-width: 1;
+  }
+  rect{
+    stroke: none;
+  }
+    rect.in {
+        fill: #009900;
+    }
+    rect.out {
+        fill: #990000;
     }
   </style>
 </head>
@@ -30,31 +40,51 @@
 
                 var x = d3.time.scale().range(([0,width]));
                 x.domain([new Date('2012-11-1'), new Date()]);
-                var svg = body.append("div");
+                body.append("div").attr('class', 'new_committee');
 
                 var y = d3.scale.linear().range(([0,height]));
-                y.domain([0,50000]);
+                y.domain([0,500000]);
 
-                var svg = d3.select('body')
+                var svg1 = d3.select('body')
                     .append("svg")
                     .attr("width", width)
                     .attr("height",height);
 
-                svg.append('g').attr('class','committee')
-                    .selectAll('rect.day').data(data)
-                    .enter().append('rect').attr('class','day')
+                svg1.append('g').attr('class','committee')
+                    .selectAll('rect.in').data(data)
+                    .enter().append('rect').attr('class','in')
                     .attr('x', function(d){
                         // console.log('x',d.tran_date);
                         return x(new Date(d.tran_date));
                     })
                     .attr('y',function(d){
                         // console.log('y',height - y(d.total_in) );
-                        return height - y(d.total_in);
+
+                            return (height - y(d.total_in)) || 0;
                     })
-                    .attr('width', 2 )
+                    .attr('width', .5 )
                     .attr('height',function(d){
-                        console.log('height',d.total_in);
-                        return y(d.total_in)
+                            return y(d.total_in) || 0;
+                    });
+
+                body.append("div");
+
+                var svg2 = d3.select('body')
+                    .append("svg")
+                    .attr("width", width)
+                    .attr("height",height);
+
+                 svg2.append('g').attr('class','committee')
+                    .selectAll('rect.out').data(data)
+                    .enter().append('rect').attr('class','out')
+                    .attr('x', function(d){
+                        // console.log('x',d.tran_date);
+                        return x(new Date(d.tran_date));
+                    })
+                    .attr('y', 0)
+                    .attr('width', .5 )
+                    .attr('height',function(d){
+                            return y(d.total_out) || 0;
                     });
 
             });
