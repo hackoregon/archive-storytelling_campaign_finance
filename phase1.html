@@ -40,7 +40,9 @@
 
                 var x = d3.time.scale().range(([0,width]));
                 x.domain([new Date('2012-11-1'), new Date()]);
-                body.append("div").attr('class', 'new_committee');
+                body.append("div")
+                    .attr('class', 'new_committee')
+                    .attr('data-committee-id', committee.committeeId);;
 
                 var y = d3.scale.linear().range(([0,height]));
                 y.domain([0,500000]);

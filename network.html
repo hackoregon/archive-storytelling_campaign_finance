@@ -1,0 +1,109 @@
+<html>
+<head>
+  <title>Phase 3</title>
+  <script src="lib/lodash.min.js"></script>
+  <script src="lib/d3/d3.min.js"></script>
+  <script src="lib/jquery-2.1.3.min.js"></script>
+  <style>
+  .lineIn {
+      fill: none;
+      stroke: rgba(00,99,00,.5);
+      stroke-width: 0.5px;
+    }
+  .lineOut {
+      fill: none;
+      stroke: rgba(99,00,00,.5);
+      stroke-width: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+
+  <script>
+    var committeeTemplate = {
+      name: '',
+      id: '',
+      contributees: {}
+    }
+    var committees = {};
+    var getCommittee = function(id){
+      var committeeDeferred = $.Deferred();
+
+      if (!_(committees).has(id)){
+        // No committee data yet, setup the record and request it
+        committees[id] = _.clone(committeeTemplate);
+        var committee = committees[id];
+
+        $.getJSON('http://54.213.83.132/hackoregon/http/committee_data_by_id/' + id + '/')
+          .then(function(committeeResp){
+            committee.name = committeeResp[0].committee_name;
+            committee.id = id;
+            console.log('got committee id: ' + id, committee.name);
+            return $.getJSON('http://54.213.83.132/hackoregon/http/current_candidate_transactions/' + id + '/');
+          })
+          .then(function(transactions){
+            var transactionsDeferreds = [];
+
+            _.forEach(transactions, function(transaction){
+              if (transaction.sub_type === 'Cash Contribution' &&
+                transaction.book_type === 'Political Committee' &&
+                new Date(transaction.tran_date).getTime() > new Date('2013-11-1').getTime() ){
+                var transactionDeferred = $.Deferred();
+                transactionsDeferreds.push(transactionDeferred);
+                var payeeId = transaction.contributor_payee_committee_id;
+                if(!committee.contributees[payeeId]){
+                  committee.contributees[payeeId] = {
+                    amount: 0
+                  };
+                }
+                committee.contributees[payeeId].amount += Number(transaction.amount);
+                //transactionDeferred.resolve(null);
+                getCommittee(payeeId).then(function(c){
+                  //committee.contributees[payeeId].committee = c;
+                  transactionDeferred.resolve(c);
+                });
+              }
+            });
+
+            return $.when.apply($, transactionsDeferreds);
+
+          })
+          .then(function(){
+            //console.log('got all the sub committees');
+            committeeDeferred.resolve(committees[id]);
+          });
+      } else {
+        console.log('already have committee id: ' + id);
+        committeeDeferred.resolve(committees[id]);
+      }
+      return committeeDeferred.promise();
+    }
+    // start with Democratic Party 353
+    var cache = window.localStorage.getItem('353');
+    if (!cache){
+      getCommittee('353').then(function(committee){
+        window.localStorage.setItem('353', committee);
+      })
+    } else {
+      committees = JSON.parse(cache);
+      var nodes = [];
+      var links = [];
+      _.forEach(committees, function(committee, id){
+        if(id){
+          nodes.push({id: id, name: committee.name, contributees: committee.contributees});
+          committee.nodeIndex = nodes.length;
+        }
+      });
+
+      _.forEach(nodes, function(committee, sourceIndex){
+        _.forEach(committee.contributees, function(contributee, contributeeId){
+          links.push({source: sourceIndex, target: committees[contributeeId].nodeIndex});
+        });
+      });
+      var graph = {nodes: nodes, links: links};
+      console.log(graph);
+    }
+  </script>
+</body>
+</html>
