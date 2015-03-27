@@ -5,7 +5,7 @@
   <script src="lib/d3/d3.min.js"></script>
   <script src="lib/jquery-2.1.3.min.js"></script>
   <style>
-  .lineIn {
+  .link {
       fill: none;
       stroke: rgba(00,99,00,.5);
       stroke-width: 0.5px;
@@ -32,14 +32,18 @@
 
       if (!_(committees).has(id)){
         // No committee data yet, setup the record and request it
-        committees[id] = _.clone(committeeTemplate);
-        var committee = committees[id];
+        committees[id] = {
+          name: '',
+          id: '',
+          contributees: {}
+        };
+        //var committee = committees[id];
 
         $.getJSON('http://54.213.83.132/hackoregon/http/committee_data_by_id/' + id + '/')
           .then(function(committeeResp){
-            committee.name = committeeResp[0].committee_name;
-            committee.id = id;
-            console.log('got committee id: ' + id, committee.name);
+            committees[id].name = committeeResp[0].committee_name;
+            committees[id].id = id;
+            console.log('got committee id: ' + id, committees[id].name);
             return $.getJSON('http://54.213.83.132/hackoregon/http/current_candidate_transactions/' + id + '/');
           })
           .then(function(transactions){
@@ -52,12 +56,12 @@
                 var transactionDeferred = $.Deferred();
                 transactionsDeferreds.push(transactionDeferred);
                 var payeeId = transaction.contributor_payee_committee_id;
-                if(!committee.contributees[payeeId]){
-                  committee.contributees[payeeId] = {
+                if(!committees[id].contributees[payeeId]){
+                  committees[id].contributees[payeeId] = {
                     amount: 0
                   };
                 }
-                committee.contributees[payeeId].amount += Number(transaction.amount);
+                committees[id].contributees[payeeId].amount += Number(transaction.amount);
                 //transactionDeferred.resolve(null);
                 getCommittee(payeeId).then(function(c){
                   //committee.contributees[payeeId].committee = c;
@@ -98,11 +102,59 @@
 
       _.forEach(nodes, function(committee, sourceIndex){
         _.forEach(committee.contributees, function(contributee, contributeeId){
-          links.push({source: sourceIndex, target: committees[contributeeId].nodeIndex});
+          if (contributeeId !== 'null' && committees[contributeeId].nodeIndex !== 'null' ) {
+            //if ()
+            links.push({source: sourceIndex, target: committees[contributeeId].nodeIndex, value: contributee.amount});
+          }
         });
       });
       var graph = {nodes: nodes, links: links};
       console.log(graph);
+
+  var width = 1960,
+    height = 1000;
+
+  var force = d3.layout.force()
+    .charge(-120)
+    .linkDistance(30)
+    .size([width, height]);
+
+  var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+    force
+      .nodes(graph.nodes)
+      .links(graph.links)
+      .start();
+
+    var link = svg.selectAll(".link")
+      .data(graph.links)
+      .enter().append("line")
+      .attr("class", "link")
+      //.style("stroke-width", function(d) { return Math.sqrt(d.amount); });
+
+    var node = svg.selectAll(".node")
+      .data(graph.nodes)
+      .enter().append("circle")
+      .attr("class", function(d){
+        return 'node ';
+      })
+      .attr("r", 5)
+      .call(force.drag);
+
+    node.append("title")
+      .text(function(d) { return d.name; });
+
+    force.on("tick", function() {
+      link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+      node.attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });
+    });
     }
   </script>
 </body>
