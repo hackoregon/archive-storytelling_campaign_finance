@@ -7,8 +7,12 @@
   <style>
   .link {
       fill: none;
-      stroke: rgba(00,99,00,.5);
+      stroke: rgba(00,99,00,.15);
       stroke-width: 0.5px;
+    }
+
+    circle {
+      fill: rgba(00,99,00,.25);
     }
   .lineOut {
       fill: none;
@@ -116,7 +120,9 @@
 
   var force = d3.layout.force()
     .charge(-120)
-    .linkDistance(30)
+    .linkDistance(function(d){
+      return Math.sqrt(d.value);
+    })
     .size([width, height]);
 
   var svg = d3.select("body").append("svg")
