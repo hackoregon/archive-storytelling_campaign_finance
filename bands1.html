@@ -13,6 +13,13 @@
     rect.business {
       fill: #009900;
     }
+    rect.committees {
+      fill: #999;
+    }
+    text.committees {
+      fill: #fff;
+      font-family: sans-serif;
+    }
     rect.tick {
       fill: #ddd;
     }
@@ -25,6 +32,7 @@
     var large = null;
     var business = null;
     var media = null;
+    var committees = null;
 
     var startDate = new Date('2014-1-1').getTime();
     var endDate = new Date('2014-11-15').getTime();
@@ -37,6 +45,16 @@
       business = _.filter(data, dateFilter);
       render();
     });
+    d3.json('json/committee_dots.json', function(data){
+      var dots = _.filter(data, dateFilter);
+      var weeks = {};
+      _.forEach(dots, function(dot){
+        weeks[dot.end_date] = weeks[dot.end_date] || [];
+        weeks[dot.end_date].push(dot);
+        committees = _.values(weeks);
+      });
+      render();
+    });
     d3.json('json/large_donor.json', function(data){
       large = _.filter(data, dateFilter);
       render();
@@ -47,7 +65,8 @@
     });
 
     var render = function(){
-      if (!large || !business || !media){
+      // poor man's promise
+      if (!large || !business || !media || !committees){
         return;
       }
 
@@ -63,12 +82,21 @@
 
       var barWidth = width / large.length;
 
-      var yMax = d3.max(large, function(d, i) {
+      var moneyMax = d3.max(large, function(d, i) {
         return Math.max(d.s, business[i].s, media[i].s);
       });
 
-      var moneyInScale = d3.scale.linear().range(([0,moneyInHeight]));
-      moneyInScale.domain([0,yMax]);
+      var moneyScale = d3.scale.linear()
+            .range([0,moneyInHeight])
+            .domain([0,moneyMax]);
+
+      var committeesMax = d3.max(committees, function(d){
+        return d.length;
+      });
+
+      var committeesScale = d3.scale.linear()
+            .range([0,committeesHeight])
+            .domain([0,committeesMax+10]);
 
       var group = svg.append('g').selectAll('g.week')
         .data(large)
@@ -92,10 +120,10 @@
           .attr('class', 'large')
           .attr('x', 2)
           .attr('y', function(d){
-            return moneyInHeight - moneyInScale(d.s);
+            return moneyInHeight - moneyScale(d.s);
           })
           .attr('height', function(d){
-            return moneyInScale(d.s);
+            return moneyScale(d.s);
           })
           .attr('width', (barWidth / 2)-2);
 
@@ -105,25 +133,51 @@
           .attr('x', (barWidth / 2))
           .attr('y', function(d, i){
             var b = business[i]
-            return moneyInHeight - moneyInScale(b.s);
+            return moneyInHeight - moneyScale(b.s);
           })
           .attr('height', function(d, i){
             var b = business[i]
-            return moneyInScale(b.s);
+            return moneyScale(b.s);
           })
           .attr('width', (barWidth / 2)-2);
 
+        // Committees
+        group.append('rect')
+          .attr('class', 'committees')
+          .attr('x', 1)
+          .attr('y', function(d, i){
+            var c = committees[i];
+            return moneyInHeight + committeesHeight - committeesScale(c.length);
+          })
+          .attr('height', function(d, i){
+            var c = committees[i];
+            return committeesScale(c.length)
+          })
+          .attr('width', barWidth - 2);
+
+        // Committees Labels
+        group.append('text')
+          .attr('class', 'committees')
+          .attr('x', 2)
+          .attr('y', function(d, i){
+            return moneyInHeight + committeesHeight - 20;
+          })
+          .attr('dy', '.75em')
+          .text(function(d, i){
+            var c = committees[i];
+            return c.length;
+          });
 
         // Media
         group.append('rect')
           .attr('class', 'media')
           .attr('x', 1)
           .attr('y', function(d, i){
-            return moneyInHeight +  committeesHeight;
+            return moneyInHeight + committeesHeight;
           })
           .attr('height', function(d, i){
             var m = media[i]
-            return moneyInScale(m.s);
+            return moneyScale(m.s);
           })
           .attr('width', barWidth - 2);
 
