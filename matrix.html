@@ -1,0 +1,117 @@
+<html>
+<head>
+  <title>Phase 1</title>
+  <script src="lib/lodash.min.js"></script>
+  <script src="lib/d3/d3.min.js"></script>
+  <script src="lib/jquery-2.1.3.min.js"></script>
+  <style>
+  g {
+    stroke: #333;
+    stroke-width: 1;
+  }
+  rect{
+    stroke: none;
+  }
+    rect.in {
+        fill: #009900;
+    }
+    rect.out {
+        fill: #990000;
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+
+    d3.csv('csv/winning_mark_donors.csv', function(wm){
+        d3.csv('csv/strategic_partnering_donors.csv', function(sp){
+            var donors = {};
+            var wmCommittees = [];
+            var spCommittees = [];
+            var donations = [];
+            var allCommittees = [];
+
+            _.forEach(wm, function(wmRow){
+                if (wmRow.s >= 1000){
+                    if(!donors[wmRow.contributor_payee]){
+                        donors[wmRow.contributor_payee] = {};
+                    }
+                    donors[wmRow.contributor_payee][wmRow.filer] = wmRow.s;
+                    donations.push(wmRow.s);
+                    wmCommittees.push(wmRow.filer);
+                }
+            });
+            _.forEach(sp, function(spRow){
+                if (spRow.s >= 1000){
+                    if(!donors[spRow.contributor_payee]){
+                        donors[spRow.contributor_payee] = {};
+                    }
+                    donors[spRow.contributor_payee][spRow.filer] = spRow.s;
+                    donations.push(spRow.s);
+                    spCommittees.push(spRow.filer);
+                }
+            });
+            wmCommittees.sort();
+            spCommittees.sort();
+            var donorNames = _.keys(donors).sort();
+            wmCommittees = _.uniq(wmCommittees, true);
+            spCommittees = _.uniq(spCommittees, true);
+
+            allCommittees = spCommittees.concat(wmCommittees);
+
+            var width = wmCommittees.length + spCommittees.length;
+            var height = donorNames.length;
+
+            var group = d3.select('body').append('svg')
+                .attr('width', width)
+                .attr('height', height)
+                .append('g');
+
+            var committeeScale = d3.scale.ordinal()
+                .domain(spCommittees.concat(wmCommittees))
+                .range([0,width]);
+
+            var donorScale = d3.scale.ordinal()
+                .domain(donorNames)
+                .range([0,height]);
+
+            var donationScale = d3.scale.linear()
+                .domain([999, d3.max(donations)])
+                .range([0,1]);
+
+            var donorG = group.selectAll('group.donor')
+                .data(donorNames)
+                .enter().append('group')
+                    .attr('class', 'donor')
+                    .attr('transform', function(d, i) {
+                        var donor = donors[d];
+                        return "translate(0," + i + ")";
+                    });
+
+            donorG.selectAll('rect')
+                .data(function(d) {
+                    return _.map(donors[d], function(donation, key){
+                        return {
+                            amount: donation,
+                            committee: key
+                        };
+                    })
+                })
+                .enter().append('rect')
+                    .attr('x', function(d){
+                        //console.log('x', d);
+                        return committeeScale(d.committee);
+                    })
+                    .attr('width', 1)
+                    .attr('height', 1)
+                    .style('fill', function(d){
+                        return '#00ff00';
+                    });
+
+        });
+    });
+
+  </script>
+</body>
+</html>
