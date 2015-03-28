@@ -1,0 +1,261 @@
+<html>
+<head>
+  <title>Money In</title>
+  <script src="lib/lodash.min.js"></script>
+  <script src="lib/d3/d3.min.js"></script>
+  <style>
+    .individual {
+      fill: #000099;
+    }
+    .business {
+      fill: #009900;
+    }
+    rect.media {
+      fill: #009999;
+    }
+    .committees {
+      fill: #65E48E;
+    }
+    .committees.alternate {
+      fill: #8be4a8;
+    }
+    path.committees {
+      stroke: #fff;
+      stroke-width: 2px;
+    }
+    path.individual {
+      stroke: #fff;
+      stroke-width: 2px;
+    }
+    path.other {
+      fill: #990099;
+      stroke: #fff;
+      stroke-width: 2px;
+    }
+    path.business {
+      stroke: #fff;
+      stroke-width: 2px;
+    }
+    text.committees {
+      fill: #fff;
+      font-family: sans-serif;
+    }
+    rect.tick {
+      fill: #ddd;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    var large = null;
+    var business = null;
+    var media = null;
+    var other = null;
+    var pacToPac = null;
+
+    var startDate = new Date('2014-1-1').getTime();
+    var endDate = new Date('2014-12-1').getTime();
+    var dateFilter = function(row){
+      var week = new Date(row.end_date).getTime();
+      return week >= startDate && week <= endDate;
+    };
+
+    d3.json('json/other_month.json', function(data){
+      other = _.filter(data, dateFilter);
+      render();
+    });
+    d3.json('json/business_month.json', function(data){
+      business = _.filter(data, dateFilter);
+      render();
+    });
+    d3.json('json/large_donors_month.json', function(data){
+      large = _.filter(data, dateFilter);
+      render();
+    });
+    d3.json('json/paid_to_media_month.json', function(data){
+      media = _.filter(data, dateFilter);
+      render();
+    });
+    d3.json('json/pac_to_pac_month.json', function(data){
+      pacToPac = _.filter(data, dateFilter);
+      render();
+    });
+
+    var render = function(){
+      // poor man's promise
+      if (!large || !business || !media || !pacToPac || !other){
+        return;
+      }
+
+      var width = window.document.body.getBoundingClientRect().width;
+      var moneyInHeight = 100;
+      var committeesHeight = 200;
+      var moneyMediaHeight = 100;
+      var arrowLength = 20;
+      var pointLength = 5;
+      var height = moneyInHeight + committeesHeight + moneyMediaHeight;
+
+      var svg = d3.select('body').append('svg')
+        .attr("width", width)
+        .attr("height", height);
+
+      var barWidth = width / large.length;
+
+      var moneyMax = d3.max(large, function(d, i) {
+        return Math.max(d.s, business[i].s, media[i].s);
+      });
+
+      var moneyScale = d3.scale.linear()
+            .range([0,moneyInHeight])
+            .domain([0,moneyMax]);
+
+      var pacToPacFiltered = _.filter(pacToPac, function(d){
+        return d.s > 0;
+      });
+      var transferMinMax = d3.extent(pacToPacFiltered, function(d, i){
+        return Math.max(d.s);
+      });
+
+      var transferScale = d3.scale.linear()
+        .range([10,90])
+        .domain(transferMinMax);
+
+      var mediaScale = d3.scale.linear()
+        .range([10,barWidth-10])
+        .domain([0,moneyMax]);
+
+        // Media Rect
+        svg.append('g').append('rect')
+          .attr('class', 'media')
+          .attr('x', 0)
+          .attr('y', moneyInHeight + committeesHeight + 10)
+          .attr('height', 30)
+          .attr('width', width);
+
+        // Individual Rect
+        svg.append('g').append('rect')
+          .attr('class', 'individual')
+          .attr('x', 0)
+          .attr('y', moneyInHeight - 40)
+          .attr('height', 30)
+          .attr('width', width);
+
+      var group = svg.append('g').selectAll('g.week')
+        .data(large)
+        .enter()
+        .append('g')
+          .attr('class', 'week')
+          .attr("transform", function(d, i) {
+            return "translate(" + i * barWidth + ",0)";
+          });
+
+        // Committees
+        group.append('rect')
+          .attr('class', 'committees')
+          .attr('x', 2)
+          .attr('y', moneyInHeight)
+          .attr('height', committeesHeight)
+          .attr('width', barWidth - 2);
+
+        // Committees arrows
+        group.append('path')
+          .attr('class', 'committees')
+          .attr('d', function(d,i){
+            if (pacToPac[i-1] ) {
+
+              var p = pacToPac[i-1];
+              if (p.s === 0) {
+                return '';
+              }
+              var size = transferScale(p.s);
+
+              var path = "M -.25 " + (moneyInHeight + 10) +
+                       " h " + arrowLength +
+                       " l " + pointLength + " " + (size/2) +
+                       " l -" + pointLength + " " + (size/2) +
+                       " h -" + arrowLength;
+              return path;
+            } else {
+              return '';
+            }
+          });
+
+        // Individual Donors arrow
+        group.append('path')
+          .attr('class', 'individual')
+          .attr('d', function(d,i){
+            if (d.s === 0) {
+              return '';
+            }
+            var size = mediaScale(d.s);
+
+            var path = "M " + (barWidth-10) + " " + (moneyInHeight - 10) +
+                     " v " + arrowLength +
+                     " l -" + (size/2) + " " + pointLength +
+                     " l -" + (size/2) + " -" + pointLength +
+                     " v -" + arrowLength;
+            return path;
+          });
+
+        // Business Donors arrow
+        group.append('path')
+          .attr('class', 'business')
+          .attr('d', function(d,i){
+            var b = business[i];
+            if (b.s === 0) {
+              return '';
+            }
+            var size = mediaScale(b.s);
+            var individualSize = mediaScale(d.s);
+
+            var path = "M " + (barWidth - 10 - individualSize - 2) + " " + (moneyInHeight - 10) +
+                     " v " + arrowLength +
+                     " l -" + (size/2) + " " + pointLength +
+                     " l -" + (size/2) + " -" + pointLength +
+                     " v -" + arrowLength;
+            return path;
+          });
+        // Other Donors arrow
+        // group.append('path')
+        //   .attr('class', 'other')
+        //   .attr('d', function(d,i){
+        //     var o = other[i];
+        //     var b = business[i];
+        //     if (o.s === 0) {
+        //       return '';
+        //     }
+        //     var size = mediaScale(o.s);
+        //     var businessSize = mediaScale(b.s);
+        //     var individualSize = mediaScale(d.s);
+
+        //     var path = "M " + (barWidth - 10 - individualSize - businessSize - 4) + " " + (moneyInHeight - 10) +
+        //              " v " + arrowLength +
+        //              " l -" + (size/2) + " " + pointLength +
+        //              " l -" + (size/2) + " -" + pointLength +
+        //              " v -" + arrowLength;
+        //     return path;
+        //   });
+
+
+        // Media arrows
+        group.append('path')
+          .attr('class', 'committees')
+          .attr('d', function(d,i){
+            var m = media[i];
+            if (m.s === 0) {
+              return '';
+            }
+            var size = mediaScale(m.s);
+
+            var path = "M " + (barWidth) + " " + (committeesHeight + moneyInHeight) +
+                     " v " + arrowLength +
+                     " l -" + (size/2) + " " + pointLength +
+                     " l -" + (size/2) + " -" + pointLength +
+                     " v -" + arrowLength;
+            return path;
+          });
+    };
+
+  </script>
+</body>
+</html>
