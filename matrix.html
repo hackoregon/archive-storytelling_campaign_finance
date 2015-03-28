@@ -80,9 +80,9 @@
                 .domain([999, d3.max(donations)])
                 .range([0,1]);
 
-            var donorG = group.selectAll('group.donor')
+            var donorG = group.selectAll('g.donor')
                 .data(donorNames)
-                .enter().append('group')
+                .enter().append('g')
                     .attr('class', 'donor')
                     .attr('transform', function(d, i) {
                         var donor = donors[d];
