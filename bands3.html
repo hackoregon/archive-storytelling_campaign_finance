@@ -140,6 +140,14 @@
           .attr('height', 30)
           .attr('width', width);
 
+        // Business Rect
+        svg.append('g').append('rect')
+          .attr('class', 'business')
+          .attr('x', 0)
+          .attr('y', moneyInHeight - 40 - 35)
+          .attr('height', 30)
+          .attr('width', width);
+
       var group = svg.append('g').selectAll('g.week')
         .data(large)
         .enter()
@@ -208,11 +216,11 @@
             var size = mediaScale(b.s);
             var individualSize = mediaScale(d.s);
 
-            var path = "M " + (barWidth - 10 - individualSize - 2) + " " + (moneyInHeight - 10) +
-                     " v " + arrowLength +
+            var path = "M " + (barWidth - 10 - individualSize - 2) + " " + (moneyInHeight - 45) +
+                     " v " + (arrowLength + 35) +
                      " l -" + (size/2) + " " + pointLength +
                      " l -" + (size/2) + " -" + pointLength +
-                     " v -" + arrowLength;
+                     " v -" + (arrowLength + 35);
             return path;
           });
         // Other Donors arrow
