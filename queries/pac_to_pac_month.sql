@@ -11,6 +11,6 @@ from (
     from working_transactions t
     right join intervals i
     on t.tran_date >= i.start_date and t.tran_date < i.end_date
-    where contributor_payee in (select distinct committee_name from working_transactions, working_committees where contributor_payee=committee_name and committee_type = 'PAC')
+    where contributor_payee in (select distinct committee_name from working_transactions, working_committees where contributor_payee=committee_name)
     group by  i.end_date order by end_date
 ) t;
