@@ -1,0 +1,55 @@
+html,
+body {
+    height: 100%;
+    border: 8px solid white;
+    font-family: "proxima-nova",sans-serif;
+    font-weight: 100;
+    font-size: 17px;
+    line-height: 32px;
+}
+
+nav a {
+    font-family: "proxima-nova",sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+}
+
+p {
+    font-size: 20px;
+    font-weight: 300;
+    line-height: 32px;
+    padding-bottom: 15px;
+}
+
+.button {
+  color: rgba(101, 228, 142, 1);
+  font-size: 12px;
+  letter-spacing: 4px;
+  text-decoration: none;
+  text-transform: uppercase;
+  padding: 6px 20px;
+  border-radius: 0px;
+  border: 1px solid #8be4a8;
+  transition: 0.4s;
+  display: inline-block;
+}
+
+.button:hover {
+  color: #fff;
+  border: 1px solid rgba(101, 228, 142, 1);
+  background-color: rgba(101, 228, 142, 1);
+}
+
+.header {
+    height: 300px;
+    border-bottom: 1px solid #eee;
+    padding-top: 100px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+
+
+
+
+

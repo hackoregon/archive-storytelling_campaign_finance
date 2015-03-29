@@ -14,6 +14,9 @@
     circle {
       fill: rgba(00,99,00,.25);
     }
+    .right-wing {
+      fill: rgba(99,00,00,.25);
+    }
   .lineOut {
       fill: none;
       stroke: rgba(99,00,00,.5);
@@ -144,6 +147,12 @@
       .data(graph.nodes)
       .enter().append("circle")
       .attr("class", function(d){
+        var className = 'node';
+          console.log(d.name);
+        if (d.name.indexOf('Oregon Family Council') >= 0) {
+          console.log('!!!!!!!!')
+          className += ' right-wing';
+        }
         return 'node ';
       })
       .attr("r", 5)

@@ -4,41 +4,48 @@
   <script src="lib/lodash.min.js"></script>
   <script src="lib/d3/d3.min.js"></script>
   <style>
+    body {
+      background-color: #333;
+    }
     .individual {
-      fill: #000099;
+      fill: #e39754;
     }
     .business {
-      fill: #009900;
-    }
-    rect.media {
-      fill: #009999;
-    }
-    .committees {
-      fill: #65E48E;
-    }
-    .committees.alternate {
       fill: #8be4a8;
     }
+    rect.media {
+      fill: #74bdee;
+    }
+    .committees {
+      fill: #ddd;
+    }
+    .alternate {
+      fill: #ccc;
+    }
+    path {
+      stroke: #333;
+    }
     path.committees {
-      stroke: #fff;
       stroke-width: 2px;
     }
     path.individual {
-      stroke: #fff;
       stroke-width: 2px;
     }
     path.other {
       fill: #990099;
-      stroke: #fff;
       stroke-width: 2px;
     }
     path.business {
-      stroke: #fff;
       stroke-width: 2px;
     }
-    text.committees {
-      fill: #fff;
+    text {
+      fill: #333;
+      font-weight: bold;
       font-family: sans-serif;
+    }
+    text.month {
+      font-size: 2em;
+      fill: #999;
     }
     rect.tick {
       fill: #ddd;
@@ -53,6 +60,7 @@
     var other = null;
     var pacToPac = null;
 
+    var months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     var startDate = new Date('2014-1-1').getTime();
     var endDate = new Date('2014-12-1').getTime();
     var dateFilter = function(row){
@@ -124,8 +132,9 @@
         .range([10,barWidth-10])
         .domain([0,moneyMax]);
 
+        var staticGroup = svg.append('g');
         // Media Rect
-        svg.append('g').append('rect')
+        staticGroup.append('rect')
           .attr('class', 'media')
           .attr('x', 0)
           .attr('y', moneyInHeight + committeesHeight + 10)
@@ -133,20 +142,22 @@
           .attr('width', width);
 
         // Individual Rect
-        svg.append('g').append('rect')
+        staticGroup.append('rect')
           .attr('class', 'individual')
           .attr('x', 0)
           .attr('y', moneyInHeight - 40)
           .attr('height', 30)
           .attr('width', width);
 
+
         // Business Rect
-        svg.append('g').append('rect')
+        staticGroup.append('rect')
           .attr('class', 'business')
           .attr('x', 0)
           .attr('y', moneyInHeight - 40 - 35)
           .attr('height', 30)
           .attr('width', width);
+
 
       var group = svg.append('g').selectAll('g.week')
         .data(large)
@@ -159,15 +170,37 @@
 
         // Committees
         group.append('rect')
-          .attr('class', 'committees')
+          .attr('class', function(d,i){
+            var className = 'committees';
+            if(i % 2 === 0){
+              className += ' alternate';
+            }
+            return className;
+          })
           .attr('x', 2)
           .attr('y', moneyInHeight)
           .attr('height', committeesHeight)
           .attr('width', barWidth - 2);
 
+
+        // Committees Labels
+        group.append('text')
+          .attr('class', 'month')
+          .attr('x', 10)
+          .attr('y', moneyInHeight + committeesHeight - 10)
+          .text(function(d,i){
+            return months[i];
+          })
+
         // Committees arrows
         group.append('path')
-          .attr('class', 'committees')
+          .attr('class', function(d,i){
+            var className = 'committees';
+            if(i % 2){
+              className += ' alternate';
+            }
+            return className;
+          })
           .attr('d', function(d,i){
             if (pacToPac[i-1] ) {
 
@@ -177,7 +210,7 @@
               }
               var size = transferScale(p.s);
 
-              var path = "M -.25 " + (moneyInHeight + 10) +
+              var path = "M -.25 " + (moneyInHeight + 20) +
                        " h " + arrowLength +
                        " l " + pointLength + " " + (size/2) +
                        " l -" + pointLength + " " + (size/2) +
@@ -247,7 +280,17 @@
 
         // Media arrows
         group.append('path')
-          .attr('class', 'committees')
+          .attr('class', function(d,i){
+            var className = 'committees';
+            if(i % 2 === 0){
+              className += ' alternate';
+            }
+            return className;
+          })
+          .attr('title', function(d,i){
+            var m = media[i];
+            return m.s;
+          })
           .attr('d', function(d,i){
             var m = media[i];
             if (m.s === 0) {
@@ -262,6 +305,32 @@
                      " v -" + arrowLength;
             return path;
           });
+
+
+        var textGroup = svg.append('g');
+        // Individual Label
+        textGroup.append('text')
+          .attr('x', 5)
+          .attr('y', moneyInHeight - 20)
+          .text('Individual');
+
+        // Business Label
+        textGroup.append('text')
+          .attr('x', 5)
+          .attr('y', moneyInHeight - 55)
+          .text('Business');
+
+        // PACS Label
+        textGroup.append('text')
+          .attr('x', 5)
+          .attr('y', moneyInHeight + 20)
+          .text('PACS');
+
+        // Media Label
+        textGroup.append('text')
+          .attr('x', 5)
+          .attr('y', moneyInHeight + committeesHeight + 30)
+          .text('Media');
     };
 
   </script>
